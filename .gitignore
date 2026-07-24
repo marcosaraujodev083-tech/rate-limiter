@@ -1,0 +1,21 @@
+# Arquivos de Build
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# Arquivos do IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# Arquivos do VS Code e Eclipse
+.vscode/
+.classpath
+.project
+.settings/
+.factorypath
+
+# Sistema Operacional
+.DS_Store
+Thumbs.db
