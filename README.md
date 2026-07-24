@@ -36,9 +36,9 @@ Um sistema de limitação de taxa (*Rate Limiting*) baixa latência construído 
 - [x] Mapeamento de endpoints de teste (`/api/v1/ping`).
 
 ### 🟡 Sprint 2: Observabilidade & Dashboard em Tempo Real (Em Progresso)
-- [ ] Integração com **WebSockets (STOMP / SockJS)**.
-- [ ] Publicação de eventos de métricas de requisições permitidas/bloqueadas.
-- [ ] Dashboard frontend em tempo real (HTML5, Chart.js) para monitoramento do tráfego.
+- [x] Integração com **WebSockets (STOMP / SockJS)**.
+- [x] Publicação de eventos de métricas de requisições permitidas/bloqueadas.
+- [x] Dashboard frontend em tempo real (HTML5, Chart.js) para monitoramento do tráfego.
 
 ### 🔵 Sprint 3: Algoritmos Avançados & Resiliência (Futuro)
 - [ ] Migração/Suporte para o algoritmo **Sliding Window Log** utilizando Scripts Lua no Redis.

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rate Limiter - Realtime Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+</head>
+<body class="bg-slate-900 text-white font-sans min-h-screen p-8">
+
+<div class="max-w-5xl mx-auto">
+    <header class="flex justify-between items-center mb-8 border-b border-slate-800 pb-4">
+        <div>
+            <h1 class="text-3xl font-bold text-indigo-400">⚡ Traffic Monitor</h1>
+            <p class="text-slate-400 text-sm mt-1">Painel de Observabilidade em Tempo Real - Rate Limiter</p>
+        </div>
+        <div class="flex items-center space-x-2">
+            <span id="status-dot" class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+            <span id="status-text" class="text-sm font-semibold text-slate-400">Desconectado</span>
+        </div>
+    </header>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700">
+            <p class="text-slate-400 text-sm font-medium">Requisições Permitidas (200)</p>
+            <p id="total-allowed" class="text-4xl font-extrabold text-emerald-400 mt-2">0</p>
+        </div>
+        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700">
+            <p class="text-slate-400 text-sm font-medium">Bloqueadas / Rate Limit (429)</p>
+            <p id="total-blocked" class="text-4xl font-extrabold text-rose-500 mt-2">0</p>
+        </div>
+        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700">
+            <p class="text-slate-400 text-sm font-medium">Taxa de Rejeição</p>
+            <p id="block-rate" class="text-4xl font-extrabold text-indigo-400 mt-2">0%</p>
+        </div>
+    </div>
+
+    <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
+        <h2 class="text-lg font-bold mb-4 text-slate-300">Volume de Tráfego ao Vivo</h2>
+        <div class="h-64">
+            <canvas id="trafficChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+    let allowedCount = 0;
+    let blockedCount = 0;
+
+    // Configuração do Gráfico Chart.js
+    const ctx = document.getElementById('trafficChart').getContext('2d');
+    const trafficChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Permitidas (200)', 'Bloqueadas (429)'],
+            datasets: [{
+                data: [0, 0],
+                backgroundColor: ['#10b981', '#f43f5e'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { labels: { color: '#94a3b8' } }
+            }
+        }
+    });
+
+    // Conexão WebSocket com STOMP + SockJS
+    function connect() {
+        const socket = new SockJS('/ws-rate-limiter');
+        const stompClient = Stomp.over(socket);
+        stompClient.debug = null; // Oculta logs poluídos no console
+
+        stompClient.connect({}, function (frame) {
+            document.getElementById('status-dot').className = "w-3 h-3 bg-emerald-500 rounded-full";
+            document.getElementById('status-text').innerText = "Conectado em Tempo Real";
+            document.getElementById('status-text').className = "text-sm font-semibold text-emerald-400";
+
+            // Inscreve no tópico /topic/metrics que configuramos no Spring
+            stompClient.subscribe('/topic/metrics', function (message) {
+                const event = JSON.parse(message.body);
+                updateDashboard(event);
+            });
+        }, function (error) {
+            document.getElementById('status-dot').className = "w-3 h-3 bg-red-500 rounded-full animate-pulse";
+            document.getElementById('status-text').innerText = "Reconectando...";
+            document.getElementById('status-text').className = "text-sm font-semibold text-rose-500";
+            setTimeout(connect, 5000); // Tenta reconectar a cada 5s
+        });
+    }
+
+    // Atualização da Tela e do Gráfico
+    function updateDashboard(event) {
+        if (event.allowed) {
+            allowedCount++;
+        } else {
+            blockedCount++;
+        }
+
+        const total = allowedCount + blockedCount;
+        const blockRate = total > 0 ? ((blockedCount / total) * 100).toFixed(1) : 0;
+
+        document.getElementById('total-allowed').innerText = allowedCount;
+        document.getElementById('total-blocked').innerText = blockedCount;
+        document.getElementById('block-rate').innerText = `${blockRate}%`;
+
+        // Atualiza o gráfico
+        trafficChart.data.datasets[0].data = [allowedCount, blockedCount];
+        trafficChart.update();
+    }
+
+    // Inicia a conexão ao carregar a página
+    connect();
+</script>
+</body>
+</html>
